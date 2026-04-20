@@ -4,7 +4,7 @@ Predicts flight delays at Newark Liberty International Airport (EWR) during wint
 
 ## Live Demo
 
-[Launch Dashboard on Streamlit Cloud](https://snowstorm-flight-delay-predictor.streamlit.app)
+[Launch Dashboard on Streamlit Cloud](https://snowstorm-flight-delay-predictor-kms4suw7khir8j7gjkncjp.streamlit.app/)
 
 ## Overview
 
