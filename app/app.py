@@ -38,11 +38,12 @@ def load_data():
     """Load the clean dataset for visualizations."""
     df = pd.read_csv('../data/ewr_winter_clean.csv')
     results = pd.read_csv('../data/model_results.csv')
-    return df, results
+    carrier_delay_rate = df.groupby('CARRIER_NAME')['DELAYED'].mean()
+    return df, results, carrier_delay_rate
 
 try:
     xgb_model, rf_model, feature_columns = load_models()
-    df, model_results = load_data()
+    df, model_results, carrier_delay_rate = load_data()
     models_loaded = True
 except Exception as e:
     models_loaded = False
@@ -65,10 +66,10 @@ if models_loaded:
     st.sidebar.header("🌨️ Enter Weather Conditions")
     st.sidebar.markdown("Adjust the sliders to simulate different weather scenarios.")
 
-    snow = st.sidebar.slider("❄️ Snowfall (inches)", 0.0, 5.0, 0.5, 0.1)
-    snwd = st.sidebar.slider("📏 Snow Depth on Ground (inches)", 0.0, 15.0, 0.0, 0.5)
-    tmax = st.sidebar.slider("🌡️ Max Temperature (°F)", 0, 65, 32, 1)
-    awnd = st.sidebar.slider("🌬️ Wind Speed (mph)", 0.0, 35.0, 10.0, 0.5)
+    snow = st.sidebar.slider("❄️ Snowfall (inches)", 0.0, 3.0, 0.5, 0.1)
+    snwd = st.sidebar.slider("📏 Snow Depth on Ground (inches)", 0.0, 2.0, 0.0, 0.1)
+    tmax = st.sidebar.slider("🌡️ Max Temperature (°F)", 15, 65, 32, 1)
+    awnd = st.sidebar.slider("🌬️ Wind Speed (mph)", 0.0, 30.0, 10.0, 0.5)
     prcp = st.sidebar.slider("🌧️ Precipitation (inches)", 0.0, 2.0, 0.1, 0.05)
 
     st.sidebar.markdown("---")
@@ -80,7 +81,8 @@ if models_loaded:
 
     # Time block
     time_blocks = sorted(df['DEP_TIME_BLK'].unique())
-    dep_time = st.sidebar.selectbox("Departure Time", time_blocks, index=4)
+    _default_blk = '0800-0859' if '0800-0859' in time_blocks else time_blocks[0]
+    dep_time = st.sidebar.selectbox("Departure Time", time_blocks, index=time_blocks.index(_default_blk))
 
     # Day of week
     day_names = {1: 'Monday', 2: 'Tuesday', 3: 'Wednesday', 4: 'Thursday',
@@ -98,8 +100,6 @@ if models_loaded:
     # Engineer features to match what the model expects
     peak_blocks = ['0700-0759', '0800-0859', '0900-0959',
                    '1600-1659', '1700-1759', '1800-1859', '1900-1959']
-
-    carrier_delay_rate = df.groupby('CARRIER_NAME')['DELAYED'].mean()
 
     # Get median values for columns we don't have sliders for
     input_data = pd.DataFrame([{
@@ -279,6 +279,7 @@ if models_loaded:
             sim_input = input_data.copy()
             sim_input['SNOW'] = s
             sim_input['HEAVY_SNOW'] = int(s > 1)
+            sim_input['SNOW_ON_GROUND'] = int(s > 0)
             sim_input['SEVERE_WEATHER'] = int((s > 0) and (tmax < 35) and (awnd > 10))
             prob = xgb_model.predict_proba(sim_input)[0][1]
             probs.append(prob * 100)
