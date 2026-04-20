@@ -12,6 +12,11 @@ import joblib
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import confusion_matrix, roc_curve, roc_auc_score
+from pathlib import Path
+
+BASE = Path(__file__).parent          # app/
+MODEL_DIR = BASE / ".." / "models"
+DATA_DIR  = BASE / ".." / "data"
 
 # ============================================================
 # PAGE CONFIG
@@ -27,17 +32,18 @@ st.set_page_config(
 # ============================================================
 @st.cache_resource
 def load_models():
-    """Load saved models (cached so it only loads once)."""
-    xgb_model = joblib.load('../models/xgb_model.pkl')
-    rf_model = joblib.load('../models/rf_model.pkl')
-    feature_cols = joblib.load('../models/feature_columns.pkl')
+    xgb_model  = joblib.load(MODEL_DIR / "xgb_model.pkl")
+    feature_cols = joblib.load(MODEL_DIR / "feature_columns.pkl")
+    try:
+        rf_model = joblib.load(MODEL_DIR / "rf_model.pkl")
+    except FileNotFoundError:
+        rf_model = None  # large file excluded from deployment
     return xgb_model, rf_model, feature_cols
 
 @st.cache_data
 def load_data():
-    """Load the clean dataset for visualizations."""
-    df = pd.read_csv('../data/ewr_winter_clean.csv')
-    results = pd.read_csv('../data/model_results.csv')
+    df      = pd.read_csv(DATA_DIR / "ewr_winter_clean.csv")
+    results = pd.read_csv(DATA_DIR / "model_results.csv")
     carrier_delay_rate = df.groupby('CARRIER_NAME')['DELAYED'].mean()
     return df, results, carrier_delay_rate
 
